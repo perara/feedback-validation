@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>{{course}}</title>
+</head>
+<body>
+
+
+
+
+<h1>{{ course }}</h1>
+
+Paste the following into the assignment: <b>{{ session.signature }}</b>
+
+<hr>
+Following metadata is stored using a cookie I have saved in your browser: <br>
+<b>Signature:</b> {{ session.signature }}<br>
+<b>Public Key:</b> {{ session.pubkey }}<br>
+<b>Hash:</b> {{ session.hash }}<br>
+<hr>
+<b>About the validation:</b><br>
+The validation is done in the following steps
+1. Create ECC public/private key pair<br>
+2. Hash the public key<br>
+3. Create a Signature using the public key as message, and the private key as the signer<br>
+4. Delete the private key permanently<br>
+5. Store the following: <b>public-key</b>, <b>signature</b>, <b>hash of public key</b>
+<br><br>
+<b>During  verification:</b>
+1. Load the public-key and signature. Because I know what the message is (public key), I can verify that the hash given in the assignment is OK<br>
+2. Success.
+
+</body>
+</html>
