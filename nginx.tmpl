@@ -4,7 +4,7 @@ http {
     listen 80;
     client_max_body_size 4G;
 
-    server_name ${FEEDBACK_DOMAINS};
+    server_name ${VIRTUAL_HOST:};
 
     location / {
       proxy_set_header Host $http_host;
