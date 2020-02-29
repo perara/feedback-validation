@@ -1,15 +1,12 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
+import os
+import time
 import uuid
 from collections import namedtuple
-from uuid import UUID
-
 from Crypto.Hash import SHA256
-from Crypto.PublicKey import DSA, RSA, ECC
-from Crypto.Signature import DSS
 from netaddr import IPAddress, IPNetwork
-from sanic.response import json, text
-from sanic.views import HTTPMethodView
+from sanic.response import json
 from sanic import Sanic
 from sanic_jinja2 import SanicJinja2
 import tinydb
@@ -25,6 +22,7 @@ db = tinydb.TinyDB(join(dp, "database.json"))
 jinja = SanicJinja2(app)
 access_control = ["127.0.0.1/24", "10.0.10.0/24", "10.0.0.0/24", "10.0.1.0/24"]
 
+
 @app.route('/')
 @jinja.template('index.html')  # decorator method is staticmethod
 async def index(request):
@@ -32,30 +30,28 @@ async def index(request):
     print(all_table_data)
     return {'data': all_table_data}
 
-@app.route('/course/<year:[0-9]{4}>/<course_id:string>/verify/<signature:string>')
-async def course(request, year, course_id, signature):
-    course_data = db.table(year).search(where("course") == course_id)[0]
-    verify_ok = False
-    for key, value in course_data["keys"].items():
-        h = SHA256.new(value["pubkey"].encode("utf-8"))
-        key = ECC.import_key(value["pubkey"])
-        verifier = DSS.new(key, 'fips-186-3')
 
-        try:
-            verifier.verify(h, bytes.fromhex(signature))
-            verify_ok = True
-            continue
-        except ValueError:
-            pass
+@app.route('/overview/<year:[0-9]{4}>/<course_id:string>')
+@jinja.template('overview.html')  # decorator method is staticmethod
+async def index(request, year, course_id):
+    course_data = db.table(year).search(where("course") == course_id)[0]
+    print(course_data)
+    return {'keys': [x["hash"] for _, x in course_data["keys"].items()]}
+
+
+@app.route('/course/<year:[0-9]{4}>/<course_id:string>/verify/<signature:string>')
+async def verify(request, year, course_id, signature):
+    course_data = db.table(year).search(where("course") == course_id)[0]
+    verify_ok = any([signature == value["hash"] for key, value in course_data["keys"].items()])
 
     return json({
         "message": verify_ok
     })
 
 
-@app.route('/course/<year:[0-9]{4}>/<course_id:string>')
-async def course(request, year, course_id):
-    course_data = db.table(year).search(where("course") == course_id)[0]
+@app.route('/course/<year:[0-9]{4}>/<course_hash:string>')
+async def course(request, year, course_hash):
+    course_data = db.table(year).search(where("hash") == course_hash)[0]
 
     # Check if session exists
     session = request.cookies.get('session')
@@ -63,28 +59,13 @@ async def course(request, year, course_id):
     if session is None:
         session = str(uuid.uuid4())
 
-    request_new_key = "newkey" in request.args
+    if "newkey" in request.args and session not in course_data["keys"]:
+        # Update table
+        course_data["keys"][session] = {
+            "hash": SHA256.new(time.time().hex().encode("utf-8")).hexdigest(),
+        }
 
-    if request_new_key:
-
-        if session not in course_data["keys"]:
-            # Session has no existing keys
-            key = ECC.generate(curve='P-256')
-            pubkey = key.public_key().export_key(format='PEM')
-
-            h = SHA256.new(pubkey.encode("utf-8"))
-
-            signer = DSS.new(key, 'fips-186-3')
-            signature = signer.sign(h)
-
-            # Update table
-            course_data["keys"][session] = {
-                "pubkey": pubkey,
-                "hash": h.hexdigest(),
-                "signature": signature.hex()
-            }
-
-            db.table(year).update(course_data, where("course") == course_id)
+        db.table(year).update(course_data, where("hash") == course_hash)
 
     response = jinja.render(
         "course.html",
@@ -93,8 +74,9 @@ async def course(request, year, course_id):
         session=course_data["keys"][session]
     )
     response.cookies['session'] = session
-    response.cookies["session"]["max-age"] = 60 * 60 * 24 * 30 * 12 * 50 # Cookie lives for 50 years
+    response.cookies["session"]["max-age"] = 60 * 60 * 24 * 30 * 12 * 50  # Cookie lives for 50 years
     return response
+
 
 @app.route('/new-course/<course_id>')
 async def new_course(request, course_id):
@@ -112,7 +94,8 @@ async def new_course(request, course_id):
 
     table.insert({
         "course": course_id,
-        "keys": {}
+        "keys": {},
+        "hash": SHA256.new(course_id.encode("utf-8")).hexdigest()
     })
 
     return json({
@@ -120,7 +103,6 @@ async def new_course(request, course_id):
     })
 
 
-
-
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=8000, debug=True)
+    os.environ.setdefault("SERVER_PORT", "8000")
+    app.run(host='0.0.0.0', port=int(os.environ.get("SERVER_PORT")), debug=False)

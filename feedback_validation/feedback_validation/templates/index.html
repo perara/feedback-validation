@@ -9,9 +9,9 @@
 <h1>My Webpage</h1>
 
 {% for key, courses in data.items() %}
-    <b>{{ key }}</b>
+    <b>{{ key }}</b><br>
     {% for course in courses %}
-        <a href="/course/{{ key }}/{{ course.name }}">{{ course.name }}</a><br>
+        <a href="/overview/{{ key }}/{{ course.course }}">{{ course.course }}</a><br>
     {% endfor %}
 {% endfor %}
 
