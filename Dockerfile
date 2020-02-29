@@ -13,3 +13,5 @@ COPY ./prestart.sh /app/prestart.sh
 RUN mkdir -p /run/nginx/
 
 ENV PORT=4000
+
+EXPOSE 80
