@@ -1,10 +1,4 @@
-FROM sanicframework/sanic:LTS
+FROM tiangolo/uvicorn-gunicorn:latest
 
-RUN mkdir -p /srv
-COPY feedback_validation/ /srv
-
-RUN python3 -m pip install -r /srv/requirements.txt
-
-EXPOSE 8888
-WORKDIR /srv
-ENTRYPOINT ["python3", "/srv/server.py"]
+COPY ./feedback_validation /app
+RUN python3 -m pip install -r /app/requirements.txt
