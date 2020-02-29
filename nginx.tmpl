@@ -1,9 +1,10 @@
+events { }
 http {
   server {
     listen 80;
     client_max_body_size 4G;
 
-    server_name ${};
+    server_name ${FEEDBACK_DOMAINS};
 
     location / {
       proxy_set_header Host $http_host;
@@ -16,7 +17,7 @@ http {
   }
 
   upstream uvicorn {
-    server unix:/tmp/uvicorn.sock;
+    server 127.0.0.1:4000;
   }
 
 }

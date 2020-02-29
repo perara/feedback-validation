@@ -1,2 +1,2 @@
 #!/bin/sh
-envsubst < /etc/nginx/nginx.tmpl > /etc/nginx/nginx.conf && nginx -g 'daemon off;' || cat /etc/nginx/nginx.conf
+envsubst '$${FEEDBACK_DOMAINS}' < /app/nginx.tmpl > /etc/nginx/nginx.conf && nginx || cat /etc/nginx/nginx.conf
