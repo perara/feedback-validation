@@ -1,5 +1,5 @@
 FROM tiangolo/uvicorn-gunicorn:python3.7-alpine3.8
-
+RUN mkdir /run/nginx/
 RUN apk add --no-cache nginx alpine-sdk gettext
 RUN python3 -m pip install --upgrade pip
 
@@ -10,7 +10,7 @@ RUN python3 -m pip install -r /app/requirements.txt
 # Nginx stuff
 COPY ./nginx.tmpl /app/nginx.tmpl
 COPY ./prestart.sh /app/prestart.sh
-RUN mkdir -p /run/nginx/
+
 
 ENV PORT=4000
 
