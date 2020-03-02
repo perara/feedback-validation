@@ -1,19 +1,22 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <title>My Webpage</title>
-</head>
-<body>
+{% extends "base.html" %}
 
 
-<h1>My Webpage</h1>
+{% block content %}
+    <div style="text-align: center;"><h1>Course Feedback</h1></div>
 
-{% for key, courses in data.items() %}
-    <b>{{ key }}</b><br>
-    {% for course in courses %}
-        <a href="/overview/{{ key }}/{{ course.course }}">{{ course.course }}</a><br>
+
+
+
+
+
+    {% for year, courses in data.items() %}
+        <div style="font-size: 23px; margin-top: 10px;">{{ year }}</div>
+        <ul class="list-group">
+            {% for course in courses %}
+                <li class="list-group-item"><a href="/course/{{ year }}/{{ course.course }}">{{ course.course }}</a><br></li>
+            {% endfor %}
+        </ul>
     {% endfor %}
-{% endfor %}
 
-</body>
-</html>
+{% endblock %}
+

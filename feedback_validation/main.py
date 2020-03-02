@@ -6,7 +6,7 @@ import uuid
 from collections import namedtuple
 from Crypto.Hash import SHA256
 from netaddr import IPAddress, IPNetwork
-from sanic.response import json
+from sanic.response import json, redirect
 from sanic import Sanic
 from sanic_jinja2 import SanicJinja2
 import tinydb
@@ -27,7 +27,6 @@ access_control = ["127.0.0.1/24", "10.0.10.0/24", "10.0.0.0/24", "10.0.1.0/24"]
 @jinja.template('index.html')  # decorator method is staticmethod
 async def index(request):
     all_table_data = {tbl_name: db.table(tbl_name).all() for tbl_name in db.tables() if tbl_name != "_default"}
-    print(all_table_data)
     return {'data': all_table_data}
 
 
@@ -35,7 +34,6 @@ async def index(request):
 @jinja.template('overview.html')  # decorator method is staticmethod
 async def index(request, year, course_id):
     course_data = db.table(year).search(where("course") == course_id)[0]
-    print(course_data)
     return {'keys': [x["hash"] for _, x in course_data["keys"].items()]}
 
 
@@ -49,17 +47,45 @@ async def verify(request, year, course_id, signature):
     })
 
 
+@app.route('/404')
+async def fourofour(request):
+    return jinja.render(
+        "404.html",
+        request,
+    )
+
 @app.route('/course/<year:[0-9]{4}>/<course_hash:string>')
 async def course(request, year, course_hash):
-    course_data = db.table(year).search(where("hash") == course_hash)[0]
+    course_data_via_hash = db.table(year).search(where("hash") == course_hash)
+    course_data_via_id = db.table(year).search(where("course") == course_hash)
+
+    if not course_data_via_hash and not course_data_via_id:
+        # Return error!
+        return redirect('/404')
+
+    course_data = course_data_via_hash[0] if course_data_via_hash else course_data_via_id[0]
 
     # Check if session exists
-    session = request.cookies.get('session')
+    session = request.cookies.get('session') # TODO validate
 
+    if session is None and course_data_via_id:
+        # No session exists for user
+        return jinja.render(
+            "course.html",
+            request,
+            course=course_data["course"],
+            session=dict(
+                hash="ERROR-NO-VALID-SESSION-FOR-USER-PLEASE-COMPLETE-FEEDBACK-FORM"
+            )
+        )
+
+    # From here, course_data is via hash
     if session is None:
+        # No session exists
         session = str(uuid.uuid4())
 
-    if "newkey" in request.args and session not in course_data["keys"]:
+    if session not in course_data["keys"]:
+        # New session.
         # Update table
         course_data["keys"][session] = {
             "hash": SHA256.new(time.time().hex().encode("utf-8")).hexdigest(),
@@ -92,14 +118,15 @@ async def new_course(request, course_id):
             "message": f"Course {course_id} already exists."
         })
 
+    hash = SHA256.new(course_id.encode("utf-8")).hexdigest()
     table.insert({
         "course": course_id,
         "keys": {},
-        "hash": SHA256.new(course_id.encode("utf-8")).hexdigest()
+        "hash": hash
     })
 
     return json({
-        "message": "Created!"
+        "message": hash
     })
 
 
