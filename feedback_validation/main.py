@@ -15,10 +15,12 @@ from os.path import dirname, realpath, join
 
 from tinydb import where
 
+
 dp = dirname(realpath(__file__))
+config_dir = join(db, "data")
 hash_dummy = namedtuple("Hash", ["oid"])
 app = Sanic(name="feedback_validation")
-db = tinydb.TinyDB(join(dp, "database.json"))
+db = tinydb.TinyDB(join(config_dir, "database.json"))
 jinja = SanicJinja2(app)
 access_control = ["127.0.0.1/24", "10.0.10.0/24", "10.0.0.0/24", "10.0.1.0/24"]
 
