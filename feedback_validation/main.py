@@ -17,7 +17,7 @@ from tinydb import where
 
 
 dp = dirname(realpath(__file__))
-config_dir = join(db, "data")
+config_dir = join(dp, "data")
 hash_dummy = namedtuple("Hash", ["oid"])
 app = Sanic(name="feedback_validation")
 db = tinydb.TinyDB(join(config_dir, "database.json"))
