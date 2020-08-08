@@ -56,6 +56,7 @@ async def fourofour(request):
         request,
     )
 
+
 @app.route('/course/<year:[0-9]{4}>/<course_hash:string>')
 async def course(request, year, course_hash):
     course_data_via_hash = db.table(year).search(where("hash") == course_hash)
@@ -132,6 +133,30 @@ async def new_course(request, course_id):
     })
 
 
+@app.route('/course-result/<year:[0-9]{4}>/<course_name:string>')
+async def new_course(request, year, course_name):
+    args = request.get_args(keep_blank_values=True)
+    if 'result' not in args:
+        return json({
+            "message": "Missing 'result' in query params. Should be http://<url>?result=<LINK>"
+        })
+
+    # TODO - Ensure that request.ip is correct
+    if not any([IPAddress(request.ip) in IPNetwork(cidr) for cidr in access_control]):
+        return json({
+            "message": "Not a valid ip"
+        })
+
+    db.table(year).update({
+        "result": args["result"][0]
+    }, where("course") == course_name)
+
+    return json({
+        "message": "OK"
+    })
+
+
 if __name__ == '__main__':
     os.environ.setdefault("SERVER_PORT", "8000")
     app.run(host='0.0.0.0', port=int(os.environ.get("SERVER_PORT")), debug=False)
+    # http://localhost:8000/course-result/2020/IKT-443?result=https://docs.google.com/forms/d/1b1-L0ZUGuekyijLgS4kw_AyMXYdJ4Ze_YcPfrhCg-3Y/edit#responses --

@@ -13,7 +13,13 @@
         <div style="font-size: 23px; margin-top: 10px;">{{ year }}</div>
         <ul class="list-group">
             {% for course in courses %}
-                <li class="list-group-item"><a href="/course/{{ year }}/{{ course.course }}">{{ course.course }}</a><br></li>
+                <li class="list-group-item">
+                    <a href="/course/{{ year }}/{{ course.course }}">{{ course.course }}</a>
+                    {% if course.result %}
+                    <a style="float: right" href="{{ course.result }}">(Result)</a>
+                    {% endif %}
+                    <br>
+                </li>
             {% endfor %}
         </ul>
     {% endfor %}
